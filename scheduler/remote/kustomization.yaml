@@ -1,0 +1,6 @@
+bases:
+  - ../base
+namePrefix: remote-
+namespace: ns-team-renovate
+patchesStrategicMerge:
+  - deployment.yaml

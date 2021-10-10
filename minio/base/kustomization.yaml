@@ -1,0 +1,4 @@
+resources:
+  - service.yaml
+  - serviceaccount.yaml
+  - statefulset.yaml

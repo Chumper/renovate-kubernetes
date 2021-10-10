@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+spec:
+  replicas: 4
+  template:
+    spec:
+      containers:
+        - name: minio
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault:8200"
+            - name: VAULT_ROLE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: renovate-vault
+                  key: role_id
+            - name: VAULT_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: renovate-vault
+                  key: secret_id
+            - name: PMVE_DEBUG
+              value: "True"
+            - name: MINIO_DISTRIBUTED_NODES
+              value: "local-minio-{0...3}.local-minio-headless.default.svc.cluster.local/data"
+            - name: MINIO_ROOT_USER
+              value: vault:secret/data/minio#access_key
+            - name: MINIO_ROOT_PASSWORD
+              value: vault:secret/data/minio#secret_key

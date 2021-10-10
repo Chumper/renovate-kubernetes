@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: renovate-scheduler
+spec:
+  replicas: 1
+  template:
+    spec:
+      volumes:
+        - name: job-config
+          configMap:
+            name: renovate-job-template
+      containers:
+        - name: renovate-scheduler
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault:8200"
+            - name: VAULT_ROLE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: renovate-vault
+                  key: role_id
+            - name: VAULT_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: renovate-vault
+                  key: secret_id
+            - name: PMVE_DEBUG
+              value: "True"
+            - name: REDIS_HOST
+              value: local-redis-master
+            - name: JOB_TEMPLATE
+              value: /etc/job-config/job.yaml
+            - name: REDIS_PASSWORD
+              value: vault:secret/data/redis#password
+          volumeMounts:
+            - name: job-config
+              mountPath: /etc/job-config

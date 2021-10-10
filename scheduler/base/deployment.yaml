@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: renovate-scheduler
+  labels:
+    app.kubernetes.io/name: renovate-scheduler
+    app.kubernetes.io/instance: renovate
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: renovate-scheduler
+  template:
+    metadata:
+      labels:
+        app: renovate-scheduler
+    spec:
+      serviceAccountName: renovate-scheduler
+      volumes:
+        # mount the volume
+        - name: pmve-copy
+          emptyDir: {}
+      containers:
+        - name: renovate-scheduler
+          image: renovate-scheduler
+          command:
+            - /mnt/pmve/pmve
+          args:
+            - ./docker-entrypoint.sh
+          env:
+            - name: LOG_LEVEL
+              value: INFO
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: pmve-copy
+              mountPath: /mnt/pmve/
+      initContainers:
+        # create an init container that will copy the pmve executable
+        - name: pmve-copy
+          image: ghcr.io/chumper/pmve:latest
+          command:
+            - "cp"
+          args:
+            - "/pmve"
+            - "/mnt/pmve/pmve"
+          volumeMounts:
+            - name: pmve-copy
+              mountPath: /mnt/pmve/

@@ -1,0 +1,10 @@
+bases:
+  - ../base
+namePrefix: local-
+namespace: default
+patchesStrategicMerge:
+  - deployment.yaml
+configMapGenerator:
+  - name: renovate-job-template
+    files:
+      - job.yaml

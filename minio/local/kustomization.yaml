@@ -1,0 +1,6 @@
+bases:
+  - ../base
+namePrefix: local-
+namespace: default
+patchesStrategicMerge:
+  - statefulset.yaml

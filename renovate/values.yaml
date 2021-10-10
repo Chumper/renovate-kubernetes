@@ -1,0 +1,7 @@
+apiVersionOverrides:
+  cronjob: batch/v1
+renovate:
+  config: |
+    {}
+dind:
+  enabled: true

@@ -1,0 +1,96 @@
+---
+# Source: renovate/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: RELEASE-NAME-renovate-config
+  labels:
+    helm.sh/chart: renovate-27.31.7
+    app.kubernetes.io/name: renovate
+    app.kubernetes.io/instance: RELEASE-NAME
+    app.kubernetes.io/version: "27.31.7"
+    app.kubernetes.io/managed-by: Helm
+data:
+  config.json: |-
+
+    {}
+---
+# Source: renovate/templates/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: RELEASE-NAME-renovate
+  labels:
+    helm.sh/chart: renovate-27.31.7
+    app.kubernetes.io/name: renovate
+    app.kubernetes.io/instance: RELEASE-NAME
+    app.kubernetes.io/version: "27.31.7"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  schedule: "0 1 * * *"
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: renovate
+        app.kubernetes.io/instance: RELEASE-NAME
+    spec:
+      backoffLimit:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: renovate
+            app.kubernetes.io/instance: RELEASE-NAME
+        spec:
+          serviceAccountName: default
+          restartPolicy: Never
+          containers:
+            - name: renovate
+              image: "renovate/renovate:27.31.7-slim"
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  trap "touch /tmp/main-terminated" EXIT
+                  while true; do if [[ -f "/tmp/dind-started" ]]; then break; fi; sleep 1; done
+                  renovate
+              volumeMounts:
+                - name: config-volume
+                  mountPath: /usr/src/app/config.json
+                  subPath: config.json
+                - name: renovate-tmp-volume
+                  mountPath: /tmp
+              env:
+                - name: DOCKER_HOST
+                  value: 127.0.0.1:2376
+                - name: DOCKER_CERT_PATH
+                  value: "/tmp/certs/client"
+                - name: DOCKER_TLS_VERIFY
+                  value: "true"
+              resources: {}
+            - name: renovate-dind
+              image: "docker:20.10.9-dind"
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  dockerd-entrypoint.sh &
+                  CHILD_PID=$!
+                  while ! (pgrep containerd); do sleep 1; done
+                  touch /tmp/dind-started
+                  (while true; do if [[ -f "/tmp/main-terminated" ]]; then kill $CHILD_PID; fi; sleep 1; done) &
+                  wait $CHILD_PID
+                  if [[ -f "/tmp/main-terminated" ]]; then exit 0; fi
+              env:
+                - name: DOCKER_TLS_CERTDIR
+                  value: "/tmp/certs"
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - name: renovate-tmp-volume
+                  mountPath: /tmp
+          volumes:
+            - name: config-volume
+              configMap:
+                name: RELEASE-NAME-renovate-config
+            - name: renovate-tmp-volume
+              emptyDir: {}

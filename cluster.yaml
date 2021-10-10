@@ -1,0 +1,11 @@
+---
+apiVersion: ctlptl.dev/v1alpha1
+kind: Registry
+port: 5002
+name: ctlptl-registry
+---
+apiVersion: ctlptl.dev/v1alpha1
+kind: Cluster
+product: minikube
+registry: ctlptl-registry
+minCPUs: 4
